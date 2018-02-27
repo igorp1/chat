@@ -1,0 +1,5 @@
+{
+    "name":"chat-backend",
+    "description":"A chat application backend in php.",
+    "require":{}
+}
