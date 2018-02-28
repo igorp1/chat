@@ -30,7 +30,8 @@ class API{
 	*/
 	public function setCrossOriginWhiteList(array $allowedOrigins){
         $header = "Access-Control-Allow-Origin: " . implode(",", $allowedOrigins);
-        header($header, false);
+		header($header, false);
+		header("Access-Control-Allow-Headers: Content-Type");
     }
 
 	//====== PRIVATE METHODS ======//
@@ -42,10 +43,12 @@ class API{
 		$route = explode("/api", $rqstUri)[1];      
 		$endpoint = $this->getEndpoint($route);
 
-		if($endpoint === null){ $this->sendError(404, "The given route was not found."); }
+		if($endpoint === null){ $this->sendError(404, "The route was not found."); }
 
 		$this->checkOptions($endpoint);
+		$params = [];
 		$params = $this->getUriParams($endpoint, $route);
+		$params['json'] = json_decode( file_get_contents('php://input') );
 		$this->sendResponse($endpoint->func->call($endpoint, $params));
 	}
 	
@@ -115,7 +118,10 @@ class API{
 		foreach($endpoint->options as $optionName => $optionValue){
 			switch($optionName){
 				case 'method':
-					if($this->_server['REQUEST_METHOD'] !== $optionValue){
+					if($this->_server['REQUEST_METHOD'] === 'OPTIONS' ){
+						break;
+					}
+					if($this->_server['REQUEST_METHOD'] !== $optionValue ){
 						$this->sendError(400, "This request is not using the right method.");
 					} 
 					break;

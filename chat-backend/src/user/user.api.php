@@ -1,22 +1,30 @@
-<?php namespace user;
+<?php
 
 require_once('src/API.class.php');
 require_once('src/user/user.class.php');
 
 $user = new \APIModule("/user");
 
-$user->registerEndpoint("/load/:token", function($params){
-    
-    return $params;
+$user->registerEndpoint("/new", function(){ // OK
+    /*
+        Sets up a new user and return the user token and config 
+    */
+    return User::setupNewUser();
 
-    //$token = $params['token'];
-    //return User::loadUserFromToken($token);
 }, ["method"=>"GET"]);
 
-$user->registerEndpoint("/load/:id/:token", function($params){
-    
-    return $params;
+$user->registerEndpoint("/:token/fetch", function($params){ //OK
+    /*
+        Returns the config object for a given user
+    */
+    return User::fetchUser($params["token"]);
 
-    //$token = $params['token'];
-    //return User::loadUserFromToken($token);
 }, ["method"=>"GET"]);
+
+$user->registerEndpoint("/:token/update", function($params){
+    /*
+        Updates the config object for a given user
+    */
+    return User::updateUserConfig( $params['token'], json_encode($params['json']));
+
+}, ["method"=>"POST"]);

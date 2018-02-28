@@ -6,8 +6,9 @@ class Test{
     public function run(){
         echo "\n==== Running tests =====\n";
         
-        $nonTestFunctions = [ "run", "runBeforeEach", "invokeMethod" ];
+        $nonTestFunctions = [ "run", "runBeforeEach", "invokeMethod", "runAfterEach" ];
         $shouldRunBeforeEach = method_exists($this, 'runBeforeEach');
+        $shouldRunAfterEach = method_exists($this, 'runAfterEach');
         
         $tests = get_class_methods($this);
         foreach($tests as $testFunc){
@@ -20,6 +21,7 @@ class Test{
             catch (\Exception $err) {
                 echo "[{$testFunc}] FAILED : {$err->getMessage()}\n";
             }
+            if( $shouldRunBeforeEach ){ $this->runBeforeEach(); }
         }
         echo "========================\n\n";
     }
@@ -36,6 +38,10 @@ class Test{
 
 trait runBeforeEach{
     abstract function runBeforeEach();
+}
+
+trait runAfterEach{
+    abstract function runAfterEach();
 }
 
 class Assert{
