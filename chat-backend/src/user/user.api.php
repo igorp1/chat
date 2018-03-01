@@ -5,7 +5,7 @@ require_once('src/user/user.class.php');
 
 $user = new \APIModule("/user");
 
-$user->registerEndpoint("/new", function(){ // OK
+$user->registerEndpoint("/new", function(){
     /*
         Sets up a new user and return the user token and config 
     */
@@ -13,7 +13,7 @@ $user->registerEndpoint("/new", function(){ // OK
 
 }, ["method"=>"GET"]);
 
-$user->registerEndpoint("/:token/fetch", function($params){ //OK
+$user->registerEndpoint("/:token/fetch", function($params){
     /*
         Returns the config object for a given user
     */

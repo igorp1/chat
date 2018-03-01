@@ -1,10 +1,12 @@
 <template>
     <div id="main-container">
 		<div class="chat-title shadow-med" v-on:click="openSettings">
-			🍑 BUTT talks
+			{{chatInfo.name}}
 		</div>
-		<div style="text-align:center"><button>load previous...</button></div>
+		<div style="text-align:center;" v-if="this.loadPreviousbuttonText !== null"><button v-on:click="loadOlder" style="margin-top: 0;">{{loadPreviousbuttonText}}</button></div>
+		<div style="margin-top:7.5em" v-else></div>
 		<div class="messages-container">
+			<!-- CHAT HISTORY! -->
 			<div v-for="(line, index) in chatHistory" :key="index">
 				<div v-if="isLineFromUser(line)" class="pure-g">
 					<div class="pure-u-1-5"></div>
@@ -22,9 +24,27 @@
 					<div class="pure-u-1-5"></div>
 				</div>
 			</div>
+			<div v-for="(line, index) in messagesSending" :key="`sending_${index}`">
+				<div v-if="isLineFromUser(line)" class="pure-g">
+					<div class="pure-u-1-5"></div>
+					<div class="pure-u-4-5">
+						<div class="message shadow-low" :style="{ borderRightColor:line.from.color }">{{ line.text }}</div>
+						<span class="message-detail pull-right" style="color:grey" >Sending...</span>
+					</div>
+				</div>
+			</div>
 		</div>
-		<div>
-			<textarea rows="1" class="write-message" placeholder="message" v-on:keyup="keyCheck" v-model="message"></textarea>
+
+		<div class="write-message">
+			<div class="pure-g">
+				<div class="pure-u-md-1-5 pure-u-lg-1-5"></div>
+				<div class="pure-u-1 pure-u-md-3-5 pure-u-lg-3-5">
+					<div class="textarea-container">
+						<input rows="1" placeholder="message" v-on:keyup.enter="keyCheck" v-model="message" />
+					</div>
+				</div>
+				<div class="pure-u-md-1-5 pure-u-lg-1-5"></div>
+			</div>
 		</div>
     </div>
 </template>
@@ -36,38 +56,41 @@ export default {
 	name: 'User',
 	data () {
 		return {
-			userInfo : {},
+			userConfig : {},
+			userToken : "",
 			chatToken : "",
 			chatHistory : [],
+			messagesSending : [],
 			chatInfo : {},
-			message: ""
+			message: "",
+			historyOffset:0,
+			loadPreviousbuttonText:"load previous",
 		}
 	},
 	created(){
+		ChatService.initUser(this.$http, (token, config)=>{
+			this.userConfig = config;
+			this.userToken = token;
+		});
 		this.chatToken = this.$route.params.token;
 		this.loadChat(this.chatToken);
+		this.message = ChatService.getDraft(this.chatToken);
+		
 	},
 	methods : {
 
 		loadChat(token){
 
-			this.userInfo = {name: "🛰 idp", token: "abcxyz", color: "#4B9BFF" };
-			this.chatInfo = {name:'idp chat'};
-			this.chatHistory = [];
-			for(let i=0; i < 100; i++){
-				this.chatHistory.push({
-					text:"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla a est vitae odio ultrices dictum. Donec ut vehicula neque, vitae volutpat ex. Etiam porttitor sollicitudin imperdiet. ", 
-					from:{name: i%2 ? "🛰 idp" : "test bot", token: i%2 ? "abcxyz" : "123456", color: i%2 ? "#4B9BFF" : "#FF5C51"}
-				});
-			}
-
-			// ChatService.loadChat(this.$http, token)
-			// .then(
-			// 	(response) => {
-			// 		console.log(response.body);
-			// 	},
-			// 	(response)=>{console.log('something went wrong');}
-			// );
+			ChatService.loadChat(this.$http, token, 
+				(chatObj)=>{
+					this.chatInfo = {
+						name : chatObj['name'],
+						protected : chatObj['protected']
+					};
+					this.chatHistory = chatObj['messages'] || [];
+					this.setupAutoFetch();
+				}
+			);
 
 			this.scrollToBottom();
 			
@@ -75,7 +98,7 @@ export default {
 		},
 
 		isLineFromUser(line){
-			return line.from.token === "abcxyz";
+			return line.from.token === this.userToken;
 		},
 
 		scrollToBottom(){
@@ -83,31 +106,53 @@ export default {
 		},
 
 		keyCheck(event){
-			this.autoSaveDraftLocally(this.message);
+			event.preventDefault();
 			if(event.key === "Enter"){
-				let msgObject = this.makeNewMessageObject(this.message);
-				this.sendMessage(msgObject);
-				this.addNewToChatHistory(msgObject);
-				this.message = "";
+				if(this.message.length == 0){return;}
+				this.prepareToSendMessage();
 			}
+			this.autoSaveDraftLocally(this.message);
 		},
 
-		addNewToChatHistory(msgObject){
-			this.chatHistory.push(msgObject);
+		addNewToChatHistory(msgObjectArr){
+
+			msgObjectArr.map( (msgObject) => {
+				this.messagesSending.removeIf( (el)=> el.text == msgObject.text  );
+				this.chatHistory.push(msgObject);
+			});
+
 			this.scrollToBottom();
+		},
+
+		addNewToSending(msgObj){
+			this.messagesSending.push(msgObj);
 		},
 
 		addOldToChatHistory(msgObject){
 			this.chatHistory.push(msgObject);
 		},
 
+		prepareToSendMessage(){
+
+			this.sendMessage(this.message);
+			let msgObject = this.makeNewMessageObject(this.message);
+			this.addNewToSending(msgObject);
+
+			this.message = "";
+		},
+
 		sendMessage(msg){
-			//ChatService.sendMessage(this.http, this.message);
-			console.log("[SENT] " + msg);
+			if(msg == ""){return;}
+			ChatService.sendMessage(this.$http, this.chatToken, msg, this.userToken, (newID)=>{
+				// not much to see here.
+				console.log("SENT newID");
+			});
 		},
 
 		makeNewMessageObject(msg){
-			return { text:msg, from:this.userInfo };
+			let userObj = this.userConfig;
+			userObj["token"] = this.userToken;
+			return { text:msg, from:userObj };
 		},
 
 		openSettings(){
@@ -118,43 +163,111 @@ export default {
 			let drafts = JSON.parse(localStorage.getItem("CHAT_DRAFTS")) || {};
 			drafts[this.chatToken] = message;
 			localStorage.setItem("CHAT_DRAFTS", JSON.stringify(drafts));
+		},
+
+		loadOlder(){
+			this.historyOffset++;
+			this.loadPreviousbuttonText="loading..."
+			ChatService.loadOlder(this.$http, this.chatToken, this.historyOffset, (hist)=>{
+				if( hist.length === 0 ){
+					this.loadPreviousbuttonText=null;
+					return;
+				}
+				this.chatHistory = hist.concat(this.chatHistory);
+				this.loadPreviousbuttonText = "DONE!";
+				setTimeout(()=>{this.loadPreviousbuttonText="load previous"}, 1500);
+			});
+		},
+
+		setupAutoFetch(){
+			ChatService.beginUpdatePoll(this.$http, this.chatToken, 
+				()=>{
+					return this.chatHistory[this.chatHistory.length-1]["id"] || -1;
+				},
+				(newMessages)=>{ 
+					this.addNewToChatHistory(newMessages);
+				}
+			);
 		}
 	}
 }
 </script>
 
-<!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
 #main-container{
 	margin-top: 4em;
 }
 
 .messages-container{
-	margin-bottom: 1em;
+	margin-bottom: 3em;
 }
 
 .message{
     padding: .5em;
     margin-top: .5em;
-    border-radius: .4em;
-	border: solid 4px white;
+    border-radius: .3em;
+    border-left: solid 4px white;
+    border-right: solid 4px white;
 	font-family: 'Titillium Web', sans-serif; 
+	max-width: 100%
 }
 
 .pull-right{
 	float: right;
 }
 
-.message-detail{
+span.message-detail{
 	font-family: 'Titillium Web', sans-serif; 
+	font-size: .8em;
 }
 
-.write-message{
-	border: 1px solid rgb(223, 223, 223);
-    padding: .5em 1em;
-    border-radius: .4em;
-	width: calc(100% - 2em - 2px);resize: vertical;
+.write-message {
+	position: fixed;
+	bottom: 1em;
+	left:0;
+	width: 100%;
 }
+
+.write-message input{
+	position: relative;
+	margin-left: .5em;
+	margin-right: .5em;
+	padding: .5em 1em;
+    border-radius: .4em;
+	width: calc(100% - 1em);
+	border: 1px solid rgb(223, 223, 223);
+}
+
+@media (max-width: 767px) { 
+	.write-message div.textarea-container{
+		width: 95vw;
+	}
+}
+
+@media (max-width: 670px) { 
+	.write-message div.textarea-container{
+		width: 94vw;
+	}
+}
+
+@media (max-width: 540px) { 
+	.write-message div.textarea-container{
+		width: 93vw;
+	}
+}
+
+@media (max-width: 455px) { 
+	.write-message div.textarea-container{
+		width: 91vw;
+	}
+}
+
+@media (max-width: 381px) { 
+	.write-message div.textarea-container{
+		width: 89vw;
+	}
+}
+
 
 .chat-title{
 	cursor: pointer;
@@ -166,7 +279,5 @@ export default {
 	padding: .5em 1em;
     background-color: whitesmoke;
 }
-
-
 
 </style>

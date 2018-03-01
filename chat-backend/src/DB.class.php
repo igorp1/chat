@@ -18,14 +18,15 @@ class DB{
     }
 
 
-    function runQuery($query, $params=[]){
+    function runQuery($query, $params=[], &$insertID=-1){
         $sth = $this->db->prepare($query);
         foreach($params as $name => $value){
             $sth->bindValue($name, $value);
         }
         $sth->execute();
+        $insertID = $this->db->lastInsertId();
         return $sth->fetchAll();
-        
+
     }
 
 }

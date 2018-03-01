@@ -4,10 +4,17 @@ CREATE TABLE `user` (
 	`config`	TEXT
 );
 
-CREATE TABLE `chat` ( 
-	`ID` INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, 
-	`token` TEXT NOT NULL UNIQUE, 
-	`name` TEXT, 
-	`protected` INTEGER NOT NULL DEFAULT 0, 
-	`chat_key` TEXT 
+CREATE TABLE `chat` (
+	`ID`	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+	`token`	TEXT NOT NULL UNIQUE,
+	`name`	TEXT
+);
+
+CREATE TABLE `message` (
+	`ID`	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+	`text`	TEXT,
+	`parent_chat`	INTEGER NOT NULL,
+	`from`	INTEGER NOT NULL,
+	FOREIGN KEY(`from`) REFERENCES `user`(`ID`),
+	FOREIGN KEY(`parent_chat`) REFERENCES `chat`(`ID`)
 );

@@ -3,7 +3,6 @@
 require_once('src/DB.class.php');
 require_once('src/Helpers.class.php');
 
-
 class User{
     
     public static function setupNewUser(){

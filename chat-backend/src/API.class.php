@@ -7,6 +7,8 @@ class API{
 	private $_server;
 	private $_request;
 
+	private $responseHeader = "Content-Type: application/json";
+
 	//====== PUBLIC METHODS ======//
 	/*
 		Call to process a given a request through the API
@@ -14,8 +16,7 @@ class API{
     public function processRequest(array $request, array $server){
 		$this->_server = $server;
 		$this->_request = $request;
- 
-	    $this->routeRequest($server["REQUEST_URI"]);
+		$this->routeRequest($server["REQUEST_URI"]);
 	}
 
 	/*
@@ -36,7 +37,9 @@ class API{
 
 	//====== PRIVATE METHODS ======//
 	/*
-		Routes a given request to an API endpoint	
+		Routes a given request to an API endpoint.
+		It calls the endpoint function passing parameters as the first argument.
+		$params will contain any query prameters by name and 'json' element if a json object was posted on the request.
 	*/
     private function routeRequest(string $rqstUri){
 
@@ -48,8 +51,15 @@ class API{
 		$this->checkOptions($endpoint);
 		$params = [];
 		$params = $this->getUriParams($endpoint, $route);
-		$params['json'] = json_decode( file_get_contents('php://input') );
-		$this->sendResponse($endpoint->func->call($endpoint, $params));
+		$params['json'] = json_decode( file_get_contents('php://input'), true );
+		try{
+			$responseArray = $endpoint->func->call($endpoint, $params);
+			$this->sendResponse($responseArray, $this->responseHeader === "Content-Type: application/json");
+		}
+		catch(Exception $err){
+			$this->sendError(500,"We ran into an error.");
+		}
+		
 	}
 	
 	/*
@@ -92,7 +102,7 @@ class API{
 	}
 
 	/*
-		Get prams from URI
+		Get prams from URI and returns the $params object
 	*/
 	private function getUriParams(APIEndpoint $endpoint, string $uri){
 		$routeMap = array_diff(explode("/", $endpoint->route), [""]);
@@ -104,7 +114,7 @@ class API{
 		for($i = 0; $i < count($routeMap); $i++){
 			if( $routeMap[$routeMapKeys[$i]][0] === ":" ){ 
 				$paramName = substr($routeMap[$routeMapKeys[$i]], 1);
-				$params[$paramName] = $uriMap[$uriMapKeys[$i]];
+				$params[$paramName] = urldecode($uriMap[$uriMapKeys[$i]]);
 			}
 		}
 		return $params;
@@ -113,6 +123,9 @@ class API{
 
 	/*
 		Does any necessary checks for the given $endpoint options
+		Supported options are:
+		- method 	: GET | PUT | DELETE | POST | PATCH
+		- response 	: TEXT | HTML | JSON 
 	*/
 	private function checkOptions(APIEndpoint $endpoint){
 		foreach($endpoint->options as $optionName => $optionValue){
@@ -125,25 +138,44 @@ class API{
 						$this->sendError(400, "This request is not using the right method.");
 					} 
 					break;
+				case 'response':
+					switch($optionValue){
+						case 'text':
+						case 'TEXT':
+							$this->responseHeader = "Content-Type: text/plain";
+							break;
+						case 'html':
+						case 'HTML':
+							$this->responseHeader = "Content-Type: text/html";
+							break;
+						case 'json':
+						case 'JSON':
+							$this->responseHeader = "Content-Type: application/json";
+						default:
+							throw new Exception("The given response setting ({$optionValue}) is not supported {$endpoint->route}");
+					}
+					break;
 				default:
-					throw new Exception("The given option is not known for {$endpoint->route}");
+					throw new Exception("The given option ({$optionName}) is not known for {$endpoint->route}");
 			}
 		}
 	}
 
 	/*
-		Sends the response back to the client as a json
+		Sends the response back to the client as a json.
+		If you want to return a json, you must be an array that will be encoded.
+		If you want to return text or html, you must pass an array with the response on the first element
 	*/
 	private function sendResponse(array $responseObj, bool $asJson=true){
 		$this->setResponseHeaders();
-		echo $asJson ? json_encode($responseObj) : $responseObj;
+		echo $asJson ? json_encode($responseObj) : $responseObj[0];
 	}
 
 	/*
 		Sets header for the response
 	*/
 	private function setResponseHeaders(){
-		header("Content-Type: application/json");
+		header($this->responseHeader);
 	}
 	
 	/*
