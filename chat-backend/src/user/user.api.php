@@ -7,7 +7,7 @@ $user = new \APIModule("/user");
 
 $user->registerEndpoint("/new", function(){
     /*
-        Sets up a new user and return the user token and config 
+        Sets up a new user and returns the user token and config 
     */
     return User::setupNewUser();
 

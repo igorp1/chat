@@ -43,6 +43,8 @@ class API{
 	*/
     private function routeRequest(string $rqstUri){
 
+		$this->log("ROUTER @ $rqstUri");
+
 		$route = explode("/api", $rqstUri)[1];      
 		$endpoint = $this->getEndpoint($route);
 
@@ -132,6 +134,7 @@ class API{
 			switch($optionName){
 				case 'method':
 					if($this->_server['REQUEST_METHOD'] === 'OPTIONS' ){
+						$this->sendResponse([200], false);
 						break;
 					}
 					if($this->_server['REQUEST_METHOD'] !== $optionValue ){
@@ -169,6 +172,7 @@ class API{
 	private function sendResponse(array $responseObj, bool $asJson=true){
 		$this->setResponseHeaders();
 		echo $asJson ? json_encode($responseObj) : $responseObj[0];
+		exit();
 	}
 
 	/*
@@ -187,8 +191,14 @@ class API{
 		exit();
 	}
 
-}
+	/*
+		Helpfull server log for production 
+	*/
+	private function log(string $msg){
+		file_put_contents("php://stderr", "[API LOG] $msg\n");
+	}
 
+}
 
 class APIModule{
 
@@ -233,12 +243,11 @@ class APIModule{
 
 }
 
-
 class APIEndpoint {
 
-    public $route; // String
-    public $func; // Closure
-    public $options; // Array
+    public $route; 		// String
+    public $func; 		// Closure
+    public $options; 	// Array
 
     function __construct(string $route, Closure $func, array $options=[]){
         $this->route = $route;

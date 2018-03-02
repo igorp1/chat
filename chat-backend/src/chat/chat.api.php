@@ -49,6 +49,7 @@ $chat->registerEndpoint("/:token/send", function($params){
     /*
         Saves a new message to the db
     */
+    $see = json_encode( $params["json"] );
     return Chat::saveMessage($params["token"], $params["json"]["text"], $params["json"]["userToken"]);
 
 }, ["method"=>"POST"]);
@@ -67,7 +68,8 @@ $chat->registerEndpoint("/:token/poll/:last", function($params){
     */
 
     $timeStart = time();
-    $POLLING_INTERVAL = 30; // 20 seconds
+    $POLLING_INTERVAL = 30; // 30 seconds
+    $SLEEP_INTERVAL = 100; // 500 miliseconds 
     
     $newMessages = Chat::fetchNewMessages($params["token"], $params["last"]);
     $hasNewMessages = count($newMessages) > 0;
@@ -79,7 +81,7 @@ $chat->registerEndpoint("/:token/poll/:last", function($params){
         $hasNewMessages = count($newMessages) > 0;
 
         // chill out for .5 seconds
-        usleep(500000);
+        usleep($SLEEP_INTERVAL*100);
 
     }
 	

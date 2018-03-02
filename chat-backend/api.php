@@ -31,3 +31,5 @@ $api->registerModule( $chat );
 
 // process the request
 $api->processRequest($_REQUEST, $_SERVER);
+
+

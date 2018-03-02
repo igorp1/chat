@@ -1,5 +1,8 @@
 {
     "name":"chat-backend",
     "description":"A chat application backend in php.",
-    "require":{}
+    "require": {
+        "php": ">=5.3.3",
+        "ext-pdo_sqlite": "*"
+    }
 }
