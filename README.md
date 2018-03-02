@@ -44,6 +44,15 @@ To install dependencies:
 npm i 
 ```
 
+Make sure to update the API root of your dev environment:
+```javascript
+let APIs = {
+    dev : "http://localhost/~idp/chat-backend/api", // <== this line
+    prod: 'https://idp-chat-backend.herokuapp.com/api'
+}; 
+```
+
+
 To start dev server:
 ```
 npm run dev
