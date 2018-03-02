@@ -1,7 +1,7 @@
 # chat
 📧 Simple chat application built with php and VueJS.
 
-![alt text](https://media1.giphy.com/media/l0HlFlPemJOOhAcpi/giphy.gif "<chat demo>")
+![alt text](https://github.com/igorp1/chat/blob/master/chat_demo.gif?raw=true "<chat demo>")
 
 
 ## Dev system requirements:
