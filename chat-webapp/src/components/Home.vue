@@ -19,7 +19,7 @@
 		</div>
 
 		<div class="actions">
-			<button v-on:click="startNewChat">Start chat</button>
+			<button v-on:click="startNewChat">{{newChatButtonLabel}}</button>
 
 			<router-link to="/user">
 				<button>User Settings</button>
@@ -43,7 +43,8 @@ export default {
     name: 'Home',
 	data () {
 		return {
-			newChatID : -1
+			newChatID : -1,
+			newChatButtonLabel: "Start chat"
 		}
 	},
 	
@@ -54,6 +55,7 @@ export default {
 	methods: {
 
 		startNewChat() {
+			this.newChatButtonLabel = "starting..."
 			ChatService.newChat(this.$http, (token)=>{
 				this.sendToChatRoom(token);
 			});

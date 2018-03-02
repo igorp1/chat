@@ -3,7 +3,8 @@
 		<div class="chat-title shadow-med" v-on:click="openSettings">
 			{{chatInfo.name}}
 		</div>
-		<div style="text-align:center;" v-if="this.loadPreviousbuttonText !== null"><button v-on:click="loadOlder" style="margin-top: 0;">{{loadPreviousbuttonText}}</button></div>
+		<div style="text-align: center;margin-top: 12em;" v-if="chatHistory.length === 0 && messagesSending.length === 0 && chatInfo.name !== 'loading'">😒<br/>No messages yet</div>
+		<div style="text-align:center;" v-if="loadPreviousbuttonText !== null && chatHistory.length > 20"><button v-on:click="loadOlder" style="margin-top: 0;">{{loadPreviousbuttonText}}</button></div>
 		<div style="margin-top:7.5em" v-else></div>
 		<div class="messages-container">
 			<!-- CHAT HISTORY! -->
@@ -64,10 +65,13 @@ export default {
 			chatInfo : {},
 			message: "",
 			historyOffset:0,
-			loadPreviousbuttonText:"load previous",
+			loadPreviousbuttonText:null,
+			lastReturnedID : -1
 		}
 	},
 	created(){
+		this.chatInfo.name = "loading...";
+		
 		ChatService.initUser(this.$http, (token, config)=>{
 			this.userConfig = config;
 			this.userToken = token;
@@ -89,6 +93,7 @@ export default {
 					};
 					this.chatHistory = chatObj['messages'] || [];
 					this.setupAutoFetch();
+					this.loadPreviousbuttonText = "load previous";
 				}
 			);
 
@@ -144,8 +149,7 @@ export default {
 		sendMessage(msg){
 			if(msg == ""){return;}
 			ChatService.sendMessage(this.$http, this.chatToken, msg, this.userToken, (newID)=>{
-				// not much to see here.
-				console.log("SENT newID");
+				this.lastReturnedID = newID;
 			});
 		},
 
@@ -182,7 +186,8 @@ export default {
 		setupAutoFetch(){
 			ChatService.beginUpdatePoll(this.$http, this.chatToken, 
 				()=>{
-					return this.chatHistory[this.chatHistory.length-1]["id"] || -1;
+					let obj = this.chatHistory[this.chatHistory.length-1] || {}
+					return obj["id"] || this.lastReturnedID;
 				},
 				(newMessages)=>{ 
 					this.addNewToChatHistory(newMessages);
@@ -204,12 +209,13 @@ export default {
 
 .message{
     padding: .5em;
+	max-width: 100%;
     margin-top: .5em;
+    margin-bottom: .2em;
     border-radius: .3em;
     border-left: solid 4px white;
     border-right: solid 4px white;
 	font-family: 'Titillium Web', sans-serif; 
-	max-width: 100%
 }
 
 .pull-right{

@@ -1,8 +1,11 @@
-let ENV = 'dev';
+let ENV = process.env.NODE_ENV;
 let APIs = {
     dev : "http://localhost/~idp/chat-backend/api",
-    prod: ''
+    prod: 'https://idp-chat-backend.herokuapp.com/api'
 }; 
+
+console.log(ENV)
+
 const API_base = APIs[ENV];
 
 export default class ChatService{
@@ -73,7 +76,7 @@ export default class ChatService{
     static newChat(http, func){
         http.get( `${API_base}/chat/new` ).then(
             (res)=>{
-                func(res.body);
+                func(res.body['token']);
             },
             (res)=>this.errorHandler(res)
         ); 
@@ -145,7 +148,8 @@ export default class ChatService{
     }
 
     static errorHandler(response){
-        console.error("🚨😱 Catastrophic failure.");
+        if(ENV === 'dev') console.error(response);
+        else console.error("🚨😱 Catastrophic failure.");
     }
 
     /*====== HELPERS ========*/
@@ -168,9 +172,9 @@ export default class ChatService{
         try {
         var successful = document.execCommand('copy');
         var msg = successful ? 'successful' : 'unsuccessful';
-            console.log('Copying text command was ' + msg);
+            if(ENV == 'dev')console.log('Copying text command was ' + msg);
         } catch (err) {
-            console.log('Oops, unable to copy');
+            if(ENV == 'dev')console.log('Oops, unable to copy');
         }
         document.body.removeChild(textArea);
     }
